@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Cambios Posturales - Cuidados Paliativos</title>
+    <!-- Carga de la librería html5-qrcode desde jsDelivr (CDN más confiable) -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e88e5;
+            --primary-dark: #1565c0;
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-muted: #666666;
+            --border: #e0e0e0;
+            --success: #2e7d32;
+            --danger: #c62828;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #eef2f5;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: #fff;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #78909c;
+            color: white;
+        }
+
+        .status-msg {
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-error {
+            background-color: #ffebee;
+            color: var(--danger);
+            border: 1px solid #ffcdd2;
+        }
+
+        .status-success {
+            background-color: #e8f5e9;
+            color: var(--success);
+            border: 1px solid #c8e6c9;
+        }
+
+        .log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .log-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🏥 Registro de Cambios Posturales</h1>
+        <p>Centro de Cuidados Paliativos - Fundación</p>
+    </header>
+
+    <div class="card">
+        <div class="card-title">⚙️ Servidor y Profesional</div>
+        <div class="form-group">
+            <label for="scriptUrl">URL del Web App (Google Apps Script):</label>
+            <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveUrl()">
+        </div>
+        <div class="form-group">
+            <label for="profesional">Nombre / ID del Fisioterapeuta:</label>
+            <input type="text" id="profesional" placeholder="Ej: Lcdo. Mauricio" onchange="saveProf()">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📷 Escáner de Cama / Paciente</div>
+        <div id="reader">
+            <span id="placeholderText" style="color: #888;">Visor de cámara inactivo</span>
+        </div>
+        <button class="btn btn-primary" id="btnToggleCam" onclick="toggleCamera()">Activar Cámara</button>
+        <div id="camStatus"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">✍️ Datos de la Rotación</div>
+        <form id="recordForm" onsubmit="event.preventDefault(); registerPosition();">
+            <div class="form-group">
+                <label for="pacienteId">ID / Cama del Paciente:</label>
+                <input type="text" id="pacienteId" placeholder="Escanea QR o escribe (Ej: Cama 1)" required>
+            </div>
+            <div class="form-group">
+                <label for="posicion">Posición Asignada:</label>
+                <select id="posicion" required>
+                    <option value="">Seleccione posición...</option>
+                    <option value="Decúbito Supino">Decúbito Supino (Boca arriba)</option>
+                    <option value="Decúbito Lateral Derecho">Decúbito Lateral Derecho</option>
+                    <option value="Decúbito Lateral Izquierdo">Decúbito Lateral Izquierdo</option>
+                    <option value="Fowler / Semi-Fowler">Fowler / Semi-Fowler (Sentado)</option>
+                    <option value="Decúbito Prono">Decúbito Prono (Boca abajo)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="observacion">Observación / Piel (Opcional):</label>
+                <input type="text" id="observacion" placeholder="Ej: Piel íntegra...">
+            </div>
+            <button type="submit" class="btn btn-success">💾 Registrar Cambio Postural</button>
+        </form>
+        <div id="statusMsg"></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📋 Registros del Turno</div>
+        <div class="log-list" id="logList"></div>
+        <button class="btn btn-secondary" onclick="exportToCSV()">📥 Descargar Copia CSV (Excel)</button>
+    </div>
+
+    <script>
+        let html5QrcodeScanner = null;
+        let isCamActive = false;
+        let logs = JSON.parse(localStorage.getItem('postural_logs') || '[]');
+
+        window.onload = function() {
+            if(localStorage.getItem('script_url')) document.getElementById('scriptUrl').value = localStorage.getItem('script_url');
+            if(localStorage.getItem('profesional_name')) document.getElementById('profesional').value = localStorage.getItem('profesional_name');
+            renderLogs();
+        };
+
+        function saveUrl() { localStorage.setItem('script_url', document.getElementById('scriptUrl').value.trim()); }
+        function saveProf() { localStorage.setItem('profesional_name', document.getElementById('profesional').value.trim()); }
+
+        function toggleCamera() {
+            // Reintentar cargar la librería si no está disponible
+            if (typeof Html5Qrcode === "undefined") {
+                showCamStatus("⏳ Cargando librería de escaneo...", "success");
+                
+                // Esperar a que se cargue
+                setTimeout(() => {
+                    if (typeof Html5Qrcode === "undefined") {
+                        showCamStatus("⚠️ Error: No se pudo cargar la librería del escáner. Verifica tu conexión a Internet e intenta de nuevo.", "error");
+                        console.error("Html5Qrcode no disponible después de esperar");
+                        return;
+                    }
+                    startCamera();
+                }, 500);
+                return;
+            }
+
+            if (isCamActive) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        }
+
+        function startCamera() {
+            try {
+                // Remover texto placeholder
+                const placeholder = document.getElementById('placeholderText');
+                if (placeholder) placeholder.remove();
+                
+                // Verificar que el elemento reader existe
+                const readerElement = document.getElementById('reader');
+                if (!readerElement) {
+                    showCamStatus("⚠️ Error: No se encontró el elemento de la cámara.", "error");
+                    return;
+                }
+
+                // Crear instancia de Html5Qrcode
+                html5QrcodeScanner = new Html5Qrcode("reader");
+                
+                showCamStatus("⏳ Inicializando cámara...", "success");
+
+                // Iniciar escaneo
+                html5QrcodeScanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    onScanSuccess,
+                    onScanFailure
+                ).then(() => {
+                    isCamActive = true;
+                    document.getElementById('btnToggleCam').innerText = "Detener Cámara";
+                    showCamStatus("📷 Cámara activa. Enfoque el código QR de la cama.", "success");
+                    console.log("✅ Cámara iniciada exitosamente");
+                }).catch(err => {
+                    console.error("Error al iniciar cámara:", err);
+                    let mensajeError = "⚠️ Error al acceder a la cámara. ";
+                    
+                    // Mensajes de error específicos
+                    if (err.toString().includes("NotAllowedError") || err.toString().includes("Permission denied")) {
+                        mensajeError += "Debes otorgar permisos de cámara en tu navegador.";
+                    } else if (err.toString().includes("NotFoundError") || err.toString().includes("no camera")) {
+                        mensajeError += "No se detectó cámara en tu dispositivo.";
+                    } else if (err.toString().includes("NotSupportedError")) {
+                        mensajeError += "Tu navegador no soporta acceso a cámara (HTTPS requerido).";
+                    } else {
+                        mensajeError += err.message || "Verifica tu conexión.";
+                    }
+                    
+                    showCamStatus(mensajeError, "error");
+                    isCamActive = false;
+                });
+            } catch (error) {
+                console.error("Excepción al iniciar cámara:", error);
+                showCamStatus("⚠️ Error inesperado: " + error.message, "error");
+            }
+        }
+
+        function stopCamera() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    isCamActive = false;
+                    document.getElementById('btnToggleCam').innerText = "Activar Cámara";
+                    document.getElementById('reader').innerHTML = '<span id="placeholderText" style="color: #888;">Visor de cámara inactivo</span>';
+                    showCamStatus("", "");
+                });
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            document.getElementById('pacienteId').value = decodedText;
+            showCamStatus("✅ QR Detectado: " + decodedText, "success");
+        }
+
+        function onScanFailure(error) {}
+
+        function registerPosition() {
+            const paciente = document.getElementById('pacienteId').value.trim();
+            const posicion = document.getElementById('posicion').value;
+            const observacion = document.getElementById('observacion').value.trim();
+            const profesional = document.getElementById('profesional').value.trim() || "Fisioterapeuta";
+            const scriptUrl = document.getElementById('scriptUrl').value.trim();
+
+            if (!paciente || !posicion) {
+                alert("Por favor escanee o escriba la cama/paciente y seleccione la posición.");
+                return;
+            }
+
+            const now = new Date();
+            const record = {
+                fecha: now.toLocaleDateString('es-EC'),
+                hora: now.toLocaleTimeString('es-EC'),
+                paciente: paciente,
+                posicion: posicion,
+                observacion: observacion,
+                profesional: profesional
+            };
+
+            logs.unshift(record);
+            localStorage.setItem('postural_logs', JSON.stringify(logs));
+            renderLogs();
+
+            if (scriptUrl) {
+                fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(record)
+                }).then(() => {
+                    showStatus("✅ Registrado con éxito en Google Sheets", "success");
+                    clearForm();
+                }).catch(err => {
+                    showStatus("⚠️ Guardado localmente. Error en conexión a Sheets.", "error");
+                });
+            } else {
+                showStatus("✅ Guardado localmente en el teléfono.", "success");
+                clearForm();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('pacienteId').value = "";
+            document.getElementById('posicion').value = "";
+            document.getElementById('observacion').value = "";
+        }
+
+        function renderLogs() {
+            const list = document.getElementById('logList');
+            if (logs.length === 0) {
+                list.innerHTML = '<div style="padding:10px; color:#888; text-align:center;">Sin registros guardados.</div>';
+                return;
+            }
+            list.innerHTML = logs.map(l => `
+                <div class="log-item">
+                    <div><strong>${l.paciente}</strong> - ${l.posicion}<br><small>${l.profesional}</small></div>
+                    <div style="text-align:right;"><strong>${l.hora}</strong><br><small>${l.fecha}</small></div>
+                </div>
+            `).join('');
+        }
+
+        function showCamStatus(msg, type) {
+            const el = document.getElementById('camStatus');
+            if(!msg) { el.innerHTML = ''; return; }
+            el.innerHTML = `<div class="status-msg ${type === 'error' ? 'status-error' : 'status-success'}">${msg}</div>`;
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMsg');
+            el.innerHTML = `<div class="status-msg ${type === 'error' ? 'status-error' : 'status-success'}">${msg}</div>`;
+        }
+
+        function exportToCSV() {
+            if (logs.length === 0) return alert("Sin datos");
+            let csv = "Fecha,Hora,Paciente_Cama,Posicion,Observacion,Profesional\n";
+            logs.forEach(l => { csv += `"${l.fecha}","${l.hora}","${l.paciente}","${l.posicion}","${l.observacion}","${l.profesional}"\n`; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Cambios_Posturales_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+    </script>
+</body>
+</html>
