@@ -16,6 +16,7 @@
             --text-muted: #666666;
             --border: #e0e0e0;
             --success: #4caf50;
+            --danger: #e53935;
         }
 
         * {
@@ -75,13 +76,13 @@
 
         #reader {
             width: 100%;
+            min-height: 200px;
+            background: #eee;
             border-radius: 8px;
             overflow: hidden;
-            border: none !important;
-        }
-
-        #reader video {
-            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .form-group {
@@ -123,25 +124,9 @@
             transition: background 0.2s;
         }
 
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn-secondary {
-            background-color: #78909c;
-            color: white;
-            margin-top: 8px;
-        }
-
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-secondary { background-color: #78909c; color: white; margin-top: 8px; }
+        .btn-success { background-color: var(--success); color: white; }
 
         .log-list {
             max-height: 200px;
@@ -160,10 +145,6 @@
             align-items: center;
         }
 
-        .log-item:last-child {
-            border-bottom: none;
-        }
-
         .tag {
             background: #e3f2fd;
             color: var(--primary-dark);
@@ -174,208 +155,212 @@
         }
 
         .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            display: block;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             font-weight: 600;
             margin-top: 8px;
+            text-align: center;
         }
 
-        .status-success {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .setup-box {
-            background: #fff8e1;
-            border: 1px solid #ffe082;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 12px;
-        }
-
-        .setup-box code {
-            background: #ffecb3;
-            padding: 2px 4px;
-            border-radius: 4px;
-            word-break: break-all;
-        }
+        .status-success { background-color: #e8f5e9; color: #2e7d32; }
+        .status-error { background-color: #ffebee; color: var(--danger); }
+        .status-info { background-color: #e3f2fd; color: var(--primary-dark); }
     </style>
 </head>
 <body>
 
     <header>
         <h1>🏥 Registro de Cambios Posturales</h1>
-        <p>Centro de Cuidados Paliativos - Fundación</p>
+        <p>Centro de Cuidados Paliativos</p>
     </header>
 
-    <!-- CONFIGURACIÓN APPS SCRIPT -->
+    <!-- CONFIGURACIÓN -->
     <div class="card">
-        <div class="card-title">⚙️ Configuración del Servidor (Google Sheets)</div>
-        <div class="setup-box">
-            Ingresa la URL de tu <b>Google Web App (Apps Script)</b> para guardar automáticamente en la hoja de cálculo.
-        </div>
+        <div class="card-title">⚙️ Servidor y Profesional</div>
         <div class="form-group">
-            <label for="scriptUrl">URL del Web App (Apps Script):</label>
+            <label for="scriptUrl">URL del Web App (Google Apps Script):</label>
             <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/..." onchange="saveUrl()">
         </div>
         <div class="form-group">
             <label for="profesional">Nombre / ID del Fisioterapeuta:</label>
-            <input type="text" id="profesional" placeholder="Ej: Lcdo. Juan Pérez" onchange="saveProf()">
+            <input type="text" id="profesional" placeholder="Ej: Lcdo. Mauricio" onchange="saveProf()">
         </div>
     </div>
 
     <!-- ESCÁNER QR -->
     <div class="card">
         <div class="card-title">📷 Escáner de Cama / Paciente</div>
-        <div id="reader"></div>
-        <button class="btn btn-primary" id="btnToggleCam" onclick="toggleCamera()" style="margin-top: 10px;">Activar Cámara</button>
+        
+        <div class="form-group" id="cameraSelectGroup" style="display:none;">
+            <label for="cameraSelect">Seleccionar Cámara:</label>
+            <select id="cameraSelect"></select>
+        </div>
+
+        <div id="reader">Visor de cámara inactivo</div>
+        
+        <button class="btn btn-primary" id="btnToggleCam" onclick="initCamera()" style="margin-top: 10px;">Activar Cámara</button>
+        <div id="camStatus"></div>
     </div>
 
-    <!-- DATOS DE REGISTRO MANUAL O CONFIRMACIÓN -->
+    <!-- FORMULARIO -->
     <div class="card">
         <div class="card-title">✍️ Datos de la Rotación</div>
         <form id="recordForm" onsubmit="event.preventDefault(); registerPosition();">
             <div class="form-group">
                 <label for="pacienteId">ID / Cama del Paciente:</label>
-                <input type="text" id="pacienteId" placeholder="Escanea QR o escribe (Ej: Cama-01)" required>
+                <input type="text" id="pacienteId" placeholder="Escanea QR o escribe (Ej: Cama 01)" required>
             </div>
             <div class="form-group">
                 <label for="posicion">Posición Asignada:</label>
                 <select id="posicion" required>
                     <option value="">Seleccione posición...</option>
-                    <option value="Decúbito Supino (Boca arriba)">Decúbito Supino (Boca arriba)</option>
+                    <option value="Decúbito Supino">Decúbito Supino (Boca arriba)</option>
                     <option value="Decúbito Lateral Derecho">Decúbito Lateral Derecho</option>
                     <option value="Decúbito Lateral Izquierdo">Decúbito Lateral Izquierdo</option>
-                    <option value="Fowler / Semi-Fowler (Sentado)">Fowler / Semi-Fowler (Sentado)</option>
-                    <option value="Decúbito Prono (Boca abajo)">Decúbito Prono (Boca abajo)</option>
+                    <option value="Fowler / Semi-Fowler">Fowler / Semi-Fowler (Sentado)</option>
+                    <option value="Decúbito Prono">Decúbito Prono (Boca abajo)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="observacion">Observación / Piel (Opcional):</label>
-                <input type="text" id="observacion" placeholder="Ej: Piel íntegra, eritema leve en sacro...">
+                <label for="observacion">Observación / Estado Piel (Opcional):</label>
+                <input type="text" id="observacion" placeholder="Ej: Piel íntegra, sin eritemas">
             </div>
             <button type="submit" class="btn btn-success">💾 Registrar Cambio Postural</button>
         </form>
         <div id="statusMsg"></div>
     </div>
 
-    <!-- HISTORIAL LOCAL -->
+    <!-- HISTORIAL -->
     <div class="card">
-        <div class="card-title">📋 Registros Locales del Turno</div>
-        <div class="log-list" id="logList">
-            <div class="log-item" style="color: #888; text-align: center;">No hay registros locales aún.</div>
-        </div>
-        <button class="btn btn-secondary" onclick="exportToCSV()" style="margin-top: 10px;">📥 Descargar Copia CSV (Backup Excel)</button>
+        <div class="card-title">📋 Registros de Hoy</div>
+        <div class="log-list" id="logList"></div>
+        <button class="btn btn-secondary" onclick="exportToCSV()" style="margin-top: 10px;">📥 Descargar Copia Backup (CSV)</button>
     </div>
 
     <script>
-        let html5QrcodeScanner = null;
+        let html5QrCode = null;
         let isCamActive = false;
         let logs = JSON.parse(localStorage.getItem('postural_logs') || '[]');
 
         window.onload = function() {
-            if(localStorage.getItem('script_url')) {
-                document.getElementById('scriptUrl').value = localStorage.getItem('script_url');
-            }
-            if(localStorage.getItem('profesional_name')) {
-                document.getElementById('profesional').value = localStorage.getItem('profesional_name');
-            }
+            if(localStorage.getItem('script_url')) document.getElementById('scriptUrl').value = localStorage.getItem('script_url');
+            if(localStorage.getItem('profesional_name')) document.getElementById('profesional').value = localStorage.getItem('profesional_name');
             renderLogs();
         };
 
-        function saveUrl() {
-            localStorage.setItem('script_url', document.getElementById('scriptUrl').value.trim());
-        }
+        function saveUrl() { localStorage.setItem('script_url', document.getElementById('scriptUrl').value.trim()); }
+        function saveProf() { localStorage.setItem('profesional_name', document.getElementById('profesional').value.trim()); }
 
-        function saveProf() {
-            localStorage.setItem('profesional_name', document.getElementById('profesional').value.trim());
-        }
+        async function initCamera() {
+            const btn = document.getElementById('btnToggleCam');
+            const camStatus = document.getElementById('camStatus');
 
-        function toggleCamera() {
             if (isCamActive) {
                 stopCamera();
-            } else {
-                startCamera();
+                return;
             }
-        }
 
-        function startCamera() {
-            html5QrcodeScanner = new Html5Qrcode("reader");
-            html5QrcodeScanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess,
-                onScanFailure
-            ).then(() => {
-                isCamActive = true;
-                document.getElementById('btnToggleCam').innerText = "Detener Cámara";
-            }).catch(err => {
-                alert("Error al acceder a la cámara: " + err);
-            });
+            camStatus.innerHTML = `<div class="status-badge status-info">⏳ Solicitando acceso a la cámara...</div>`;
+
+            try {
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode("reader");
+                }
+
+                // Obtener lista de cámaras disponibles
+                const devices = await Html5Qrcode.getCameras();
+                
+                if (devices && devices.length > 0) {
+                    // Seleccionar preferentemente la cámara trasera
+                    let cameraId = devices[0].id;
+                    for (let dev of devices) {
+                        if (dev.label.toLowerCase().includes('back') || dev.label.toLowerCase().includes('trasera') || dev.label.toLowerCase().includes('environment')) {
+                            cameraId = dev.id;
+                            break;
+                        }
+                    }
+
+                    // Iniciar escaneo con la cámara seleccionada
+                    await html5QrCode.start(
+                        cameraId,
+                        { fps: 10, qrbox: { width: 220, height: 220 } },
+                        onScanSuccess,
+                        onScanFailure
+                    );
+
+                    isCamActive = true;
+                    btn.innerText = "Detener Cámara";
+                    camStatus.innerHTML = `<div class="status-badge status-success">✅ Cámara activa</div>`;
+                } else {
+                    camStatus.innerHTML = `<div class="status-badge status-error">❌ No se encontraron cámaras en este dispositivo.</div>`;
+                }
+            } catch (err) {
+                console.error("Error al iniciar cámara:", err);
+                camStatus.innerHTML = `<div class="status-badge status-error">⚠️ Error de acceso: ${err}</div>`;
+            }
         }
 
         function stopCamera() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
+            if (html5QrCode && isCamActive) {
+                html5QrCode.stop().then(() => {
                     isCamActive = false;
                     document.getElementById('btnToggleCam').innerText = "Activar Cámara";
-                });
+                    document.getElementById('camStatus').innerHTML = "";
+                    document.getElementById('reader').innerText = "Visor de cámara inactivo";
+                }).catch(err => console.error(err));
             }
         }
 
-        function onScanSuccess(decodedText, decodedResult) {
+        function onScanSuccess(decodedText) {
             document.getElementById('pacienteId').value = decodedText;
-            // Beep audio feedback
-            let ctx = new (window.AudioContext || window.webkitAudioContext)();
-            let osc = ctx.createOscillator();
-            osc.connect(ctx.destination);
-            osc.frequency.value = 800;
-            osc.start();
-            osc.stop(ctx.currentTime + 0.15);
             
-            showStatus("✅ QR Escaneado: " + decodedText, "success");
+            // Beep auditivo de confirmación
+            try {
+                let ctx = new (window.AudioContext || window.webkitAudioContext)();
+                let osc = ctx.createOscillator();
+                osc.connect(ctx.destination);
+                osc.frequency.value = 880;
+                osc.start();
+                osc.stop(ctx.currentTime + 0.12);
+            } catch(e) {}
+
+            showStatus("✅ QR Detectado: " + decodedText, "success");
         }
 
         function onScanFailure(error) {
-            // Silencioso para errores continuos de escaneo
+            // Escaneo continuo silencioso
         }
 
         function registerPosition() {
             const paciente = document.getElementById('pacienteId').value.trim();
             const posicion = document.getElementById('posicion').value;
             const observacion = document.getElementById('observacion').value.trim();
-            const profesional = document.getElementById('profesional').value.trim() || "Fisioterapeuta Unassigned";
+            const profesional = document.getElementById('profesional').value.trim() || "Fisioterapeuta";
             const scriptUrl = document.getElementById('scriptUrl').value.trim();
 
             if (!paciente || !posicion) {
-                alert("Por favor escanee o ingrese el ID del paciente y seleccione la posición.");
+                alert("Por favor escanee o ingrese el ID del paciente y la posición.");
                 return;
             }
 
             const now = new Date();
-            const fecha = now.toLocaleDateString('es-EC');
-            const hora = now.toLocaleTimeString('es-EC');
-
             const newRecord = {
-                fecha: fecha,
-                hora: hora,
+                fecha: now.toLocaleDateString('es-EC'),
+                hora: now.toLocaleTimeString('es-EC'),
                 paciente: paciente,
                 posicion: posicion,
                 observacion: observacion,
                 profesional: profesional
             };
 
-            // Guardar local
             logs.unshift(newRecord);
             localStorage.setItem('postural_logs', JSON.stringify(logs));
             renderLogs();
 
-            // Enviar a Google Sheets si hay URL
             if (scriptUrl) {
-                showStatus("⏳ Enviando a Google Sheets...", "info");
+                showStatus("⏳ Registrando en Google Sheets...", "info");
                 fetch(scriptUrl, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -383,14 +368,14 @@
                     body: JSON.stringify(newRecord)
                 })
                 .then(() => {
-                    showStatus("✅ ¡Registrado e ingresado en Google Sheets con éxito!", "success");
+                    showStatus("✅ Guardado en Google Sheets con éxito", "success");
                     clearForm();
                 })
                 .catch(err => {
-                    showStatus("⚠️ Guardado localmente. Error al sincronizar con Sheets: " + err, "error");
+                    showStatus("⚠️ Guardado local. Error de conexión con Sheets", "error");
                 });
             } else {
-                showStatus("✅ Guardado localmente. (Sin URL de Google Sheets configurada)", "success");
+                showStatus("✅ Registrado localmente (Falta configurar URL de Sheets)", "success");
                 clearForm();
             }
         }
@@ -404,7 +389,7 @@
         function renderLogs() {
             const list = document.getElementById('logList');
             if (logs.length === 0) {
-                list.innerHTML = '<div class="log-item" style="color: #888; text-align: center;">No hay registros locales aún.</div>';
+                list.innerHTML = '<div class="log-item" style="color: #888; justify-content: center;">Sin registros hoy.</div>';
                 return;
             }
             list.innerHTML = logs.map(l => `
@@ -423,14 +408,11 @@
 
         function showStatus(msg, type) {
             const el = document.getElementById('statusMsg');
-            el.innerHTML = `<div class="status-badge status-success">${msg}</div>`;
+            el.innerHTML = `<div class="status-badge status-${type}">${msg}</div>`;
         }
 
         function exportToCSV() {
-            if (logs.length === 0) {
-                alert("No hay datos para exportar.");
-                return;
-            }
+            if (logs.length === 0) return alert("No hay datos para exportar.");
             let csv = "Fecha,Hora,Paciente_Cama,Posicion,Observaciones,Profesional\n";
             logs.forEach(l => {
                 csv += `"${l.fecha}","${l.hora}","${l.paciente}","${l.posicion}","${l.observacion}","${l.profesional}"\n`;
@@ -438,12 +420,9 @@
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `Cambios_Posturales_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = `Cambios_Posturales_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
     </script>
 </body>
